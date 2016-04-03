@@ -32,13 +32,14 @@ while True:
         response = client.recv(255)
         res = key.decrypt(response)
 	code = res[0:2]
-	device = db.get('code', code)
+	device = db.get('code', code)[0]
 	if device:
 		print(device['name'])
 		if res[2:] == "ALARM":
 			print("Alarme")
 			os.kill(int(alarmPID), signal.SIGUSR1)		
-
+	else:
+		print(res)
 print("Close")
 client.close()
 stock.close()

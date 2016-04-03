@@ -8,7 +8,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s :: [%(levelname)s] %(message)s')
 
 #1st handler for file writing
-file_handler = RotatingFileHandler('activity.log', 'a', 1000000, 1)
+file_handler = RotatingFileHandler('logs/alarmStateHandler.log', 'a', 1000000, 1)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -22,12 +22,13 @@ from MySQLhandler import MySQL
 import time
 import socket
 from Crypto.PublicKey import RSA
+from datetime import datetime
 
 def sendTo(ip, msg):
 	f = open('up_pub_key', 'r')
 	UPkey = RSA.importKey(f.read())
 	f.close()
-	
+
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
 		s.connect((ip, 5400))
@@ -37,21 +38,25 @@ def sendTo(ip, msg):
 		logger.error("Erreur")
 
 #Initialize database connection
-state = ''
+DBdevices = MySQL('devices')
+DBalarm = MySQL('alarms')
 
 while True:
-	DBdevices = MySQL('devices')
-	devices = DBdevices.get('type', '2')
-	
-	previousState = state
-	
-	f = open('/home/dev/alarm/AlarmState', 'r')
-	state = f.read()
-	f.close()
-	
-	if state != previousState:
-		for device in devices:
-			logger.debug(device['ip'])
-			sendTo(device['ip'], 'STATE:'+state)
+	alarmUP = DBalarm.get('state', 1)
+	if alarmUP:
+		for alarm in alarmUP:
+			duree = datetime.now() - alarm['updated_at']
+			if duree.total_seconds() < 120.0:
+				device = DBdevices.get('id', alarm['device_id'])[0]
+				if device['ip'] != "":
+					sendTo(device['ip'], "STATE1")
 
+	alarmDOWN = DBalarm.get('state', 0)
+	if alarmDOWN:
+		for alarm in alarmDOWN:
+			duree = datetime.now() - alarm['updated_at']
+			if duree.total_seconds() < 120.0:
+				device = DBdevices.get('id', alarm['device_id'])[0]
+				if device['ip'] != "":
+					sendTo(device['ip'], "STATE0")
 	time.sleep(60)

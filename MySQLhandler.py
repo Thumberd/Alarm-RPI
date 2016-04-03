@@ -1,5 +1,5 @@
 # MySQLhandler.py
-# Jérémy Albrecht
+# Jeremy Albrecht
 # 31/01/2016
 # ajeremyalbrecht@gmail.com / @jeremyy_a
 
@@ -21,10 +21,11 @@ class MySQL:
         self.dbInfo = {}    #Contain DB info such as name of fields, type of fields and if they can be null
         self.connection = pymysql.connect(host='localhost',
                                      user='root',
-                                     password='',
-                                     db='db',
+                                     password='Railchta2c',
+                                     db='laravel',
                                      charset='utf8mb4',
-                                     cursorclass=pymysql.cursors.DictCursor)
+                                     cursorclass=pymysql.cursors.DictCursor,
+				     autocommit=True)
         with self.connection.cursor() as cursor:
             self.db = dbName
             db = self.db
@@ -45,7 +46,7 @@ class MySQL:
         #Now handling the fields the user won't have to provide such as id, date of creation or date of modification
         self.dbInfo[db]['NonRequiredFields'] = []
         for element in self.dbInfo[db]['Name']:
-            if element == "id" or element == "created" or element =="modified":
+            if element == "id" or element == "created_at" or element =="updated_at":
                 self.dbInfo[db]['NonRequiredFields'].append(element)
 
     def testData(self, data):
@@ -91,9 +92,23 @@ class MySQL:
                 else:
                     isValid = False
             else:
-                isValid = false
+                isValid = False
             i = i + 1   #Increment dbInfo->Type to choose
         return isValid
+    def all(self):
+        try:
+            with self.connection.cursor() as cursor:
+                sql = "SELECT * FROM `" + self.db +"`"
+                numberOfResult = cursor.execute(sql)
+                if numberOfResult > 1:
+                    result = []
+                    for j in range(0, numberOfResult):
+                        result.append(cursor.fetchone())
+                    return result
+                else:
+                    return cursor.fetchone()
+        except pymysql.err.InternalError as e:
+            print(e)
 
     def add(self, data):
         #Add data to the DB
@@ -125,7 +140,14 @@ class MySQL:
             FieldIndex = dbInfo[db]['Name'].index(FieldName)
         #Checking if data provided by user match the type of data of the field
         isValid = True
-        if re.match(r"^int\([0-9]{0,3}\)$", dbInfo[db]['Type'][FieldIndex], flags=0):  #Field is an int, checking if user's data is
+        if re.match(r"^int\([0-9]{0,3}\)", dbInfo[db]['Type'][FieldIndex], flags=0):  #Field is an int, checking if user's data is
+            try:
+                int(value)
+            except ValueError:  #No !
+                isValid = False
+            else:   #Yes !
+                isValid = isValid and True
+        elif re.match(r"^tinyint\([0-9]{0,3}\)$", dbInfo[db]['Type'][FieldIndex], flags=0):  #Field is an int, checking if user's data is
             try:
                 int(value)
             except ValueError:  #No !
@@ -158,13 +180,13 @@ class MySQL:
             else:
                 isValid = False
         else:
-            isValid = false
+            isValid = False
         if isValid:
             try:
                 with self.connection.cursor() as cursor:
                     sql = "SELECT * FROM `" + db + "` WHERE `" + FieldName + "`= %s"
                     numberOfResult = cursor.execute(sql, (value,))
-                    if numberOfResult > 1:
+                    if numberOfResult >= 1:
                         result = []
                         for j in range(0, numberOfResult):
                             result.append(cursor.fetchone())

@@ -8,7 +8,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s :: [%(levelname)s] %(message)s')
 
 #1st handler for file writing
-file_handler = RotatingFileHandler('alarm.log', 'a', 1000000, 1)
+file_handler = RotatingFileHandler('logs/alarm.log', 'a', 1000000, 1)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -24,6 +24,7 @@ import time
 import grovepi
 import os
 import sqlite3
+from MySQLhandler import MySQL
 
 #PID Updating
 logger.info("Updating PID")
@@ -36,20 +37,27 @@ pidCursor.execute("""UPDATE PID SET value = ? WHERE name = ?""", (actualPID, "al
 pidDB.commit()
 
 
+DBdevice = MySQL('devices')
+DBalarm = MySQL('alarms')
+devices = DBdevice.get('type', 2)
+homeDevice = None
+
+for device in devices:
+	if device['ip'] == '':
+		homeDevice = device
+
+
 def AlarmState():
-	f = open('/home/dev/alarm/AlarmState', 'r')
-	state = f.read()
-	f.close()
-	if '1' in state:
-		return True
-	elif '0' in state:
-		return False
+	alarm = DBalarm.get('device_id', homeDevice['id'])[0]
+	state = alarm['state']
+	return state
 
 def WirelessPIR(signum, stack):
 	if AlarmState():
 		print("Alarm")
 
 signal.signal(signal.SIGUSR1, WirelessPIR)
+
 
 t = 0
 i = 0
@@ -69,5 +77,3 @@ while True:
 		time.sleep(0.5)
 	else:
 		time.sleep(60)
-
-

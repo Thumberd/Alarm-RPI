@@ -40,15 +40,38 @@ class Mail:
         except:
             print("Unable to connect")
 
-        ######################################################################
-        #                                                                    #
-        # @send                                                              #
-        # Usage                                                              #
-        # mail.send()                                                        #
-        #                                                                    #
-        ######################################################################
+    ######################################################################
+    #                                                                    #
+    # @send                                                              #
+    # Usage                                                              #
+    # mail.send()                                                        #
+    #                                                                    #
+    ######################################################################
     def send(self):
         try:
             self.server.sendmail(self.credentials[1], self.toaddr, self.message)
         except:
             print("Unable to send mail")
+
+    ######################################################################
+    #                                                                    #
+    # @all                                                               #
+    # add all users email to the recipients                              #
+    #                                                                    #
+    ######################################################################
+    def all(self):
+        if 1 == 1:
+            userDB = MySQLhandler.MySQL('users')
+            users = userDB.all()
+            for user in users:
+                self.toaddr = []
+                self.toaddr.append(user['email'])
+            print(self.toaddr)
+        else:
+            print("Unable to get users mail")
+
+class LCD:
+    def addInfo(self, color, text):
+        f = open('/home/dev/screen/ScreenInfo', 'a')
+        f.write(str(color + "*" + str(text)))
+        f.close()
