@@ -100,13 +100,11 @@ class MySQL:
             with self.connection.cursor() as cursor:
                 sql = "SELECT * FROM `" + self.db +"`"
                 numberOfResult = cursor.execute(sql)
-                if numberOfResult > 1:
+                if numberOfResult >= 1:
                     result = []
                     for j in range(0, numberOfResult):
                         result.append(cursor.fetchone())
                     return result
-                else:
-                    return cursor.fetchone()
         except pymysql.err.InternalError as e:
             print(e)
 
