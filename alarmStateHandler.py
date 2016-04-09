@@ -8,7 +8,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s :: [%(levelname)s] %(message)s')
 
 #1st handler for file writing
-file_handler = RotatingFileHandler('logs/alarmStateHandler.log', 'a', 1000000, 1)
+file_handler = RotatingFileHandler('/home/pi/System/logs/alarmStateHandler.log', 'a', 1000000, 1)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -25,7 +25,7 @@ from Crypto.PublicKey import RSA
 from datetime import datetime
 
 def sendTo(ip, msg):
-	f = open('up_pub_key', 'r')
+	f = open('/home/pi/System/up_pub_key', 'r')
 	UPkey = RSA.importKey(f.read())
 	f.close()
 

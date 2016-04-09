@@ -63,15 +63,36 @@ class Mail:
         if 1 == 1:
             userDB = MySQLhandler.MySQL('users')
             users = userDB.all()
+            self.toaddr = []
             for user in users:
-                self.toaddr = []
                 self.toaddr.append(user['email'])
             print(self.toaddr)
         else:
             print("Unable to get users mail")
 
-class LCD:
-    def addInfo(self, color, text):
-        f = open('/home/dev/screen/ScreenInfo', 'a')
-        f.write(str(color + "*" + str(text)))
-        f.close()
+class SMS:
+	def __init__(self, msg):
+		self.clients = None
+		self.msg = msg		
+		try:
+			import requests
+			self.requests = requests
+		except ImportError:
+			print("Unable to import requests")
+
+	def all(self):
+		DBapifree = MySQLhandler.MySQL('apifrees')
+		clients = DBapifree.all()
+		for client in clients:
+			r = self.requests.get('https://smsapi.free-mobile.fr/sendmsg?user=' + client['user'] + '&pass=' + client['key'] + '&msg=' + self.msg)
+			
+	def byID(self, id):
+		try:
+			id = int(id)
+		except:
+			return "Incorrect data"
+		else:
+			DBapifree = MySQLhandler.MySQL('apifrees')
+			client = DBapifree.get('user_id', id)[0]
+			if client:
+				r = self.requests.get('https://smsapi.free-mobile.fr/sendmsg?user=' + client['user'] + '&pass=' + client['key'] + '&msg=' + self.msg)

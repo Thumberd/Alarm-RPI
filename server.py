@@ -4,19 +4,21 @@ from MySQLhandler import MySQL
 import os
 import sqlite3
 import signal
+from AlarmClass import Alarm
 
-f = open('pri_key', 'r')
+f = open('/home/pi/System/pri_key', 'r')
 key = RSA.importKey(f.read())
 f.close()
 
 #Defining DB connection
 db = MySQL('devices')
+DBalarm = MySQL('alarms')
 
-#Getting PID of alarm service
+#getting camera PID
 pidDB = sqlite3.connect('/home/pi/System/PID.db')
 pidCursor = pidDB.cursor()
-pidCursor.execute("""SELECT value FROM PID WHERE name='alarm'""")
-alarmPID = pidCursor.fetchone()[0]
+pidCursor.execute("""SELECT value FROM PID WHERE name = 'camera'""")
+camera = pidCursor.fetchone()[0]
 
 ip = "192.168.0.17"
 port = 5400
@@ -36,11 +38,12 @@ while True:
 	if device:
 		print(device['name'])
 		if res[2:] == "ALARM":
-			print("Alarme")
-			os.kill(int(alarmPID), signal.SIGUSR1)		
+			deviceAlarm = DBalarm.get('device_id', device['id'])[0]
+			if deviceAlarm['state'] == 1:
+				print("Alarme")
+				Alarm().MotionProtocol()
 	else:
 		print(res)
 print("Close")
 client.close()
 stock.close()
-

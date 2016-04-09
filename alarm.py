@@ -8,7 +8,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s :: [%(levelname)s] %(message)s')
 
 #1st handler for file writing
-file_handler = RotatingFileHandler('logs/alarm.log', 'a', 1000000, 1)
+file_handler = RotatingFileHandler('/home/pi/System/logs/alarm.log', 'a', 1000000, 1)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -25,6 +25,7 @@ import grovepi
 import os
 import sqlite3
 from MySQLhandler import MySQL
+from AlarmClass import Alarm
 
 #PID Updating
 logger.info("Updating PID")
@@ -35,7 +36,8 @@ actualPID = os.getpid()
 logger.info("I'm PID " + str(actualPID))
 pidCursor.execute("""UPDATE PID SET value = ? WHERE name = ?""", (actualPID, "alarm"))
 pidDB.commit()
-
+pidCursor.execute("""SELECT value FROM pid WHERE name = 'camera'""")
+camera = pidCursor.fetchone()[0]
 
 DBdevice = MySQL('devices')
 DBalarm = MySQL('alarms')
@@ -52,12 +54,6 @@ def AlarmState():
 	state = alarm['state']
 	return state
 
-def WirelessPIR(signum, stack):
-	if AlarmState():
-		print("Alarm")
-
-signal.signal(signal.SIGUSR1, WirelessPIR)
-
 
 t = 0
 i = 0
@@ -69,6 +65,7 @@ while True:
 			t = t + 1
 		if t == 5:
 			print("Alarme")
+			Alarm().MotionProtocol()
 			i = 0
 			t = 0
 		if i > 50:
