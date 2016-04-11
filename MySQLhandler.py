@@ -1,3 +1,4 @@
+
 # MySQLhandler.py
 # Jeremy Albrecht
 # 31/01/2016
@@ -231,44 +232,10 @@ class MySQL:
             int(idEntry)
         except ValueError:
             isValid = False
-        if re.match(r"^int\([0-9]{0,3}\)$", dbInfo[db]['Type'][FieldIndex], flags=0):  #Field is an int, checking if user's data is
-            try:
-                int(value)
-            except ValueError:  #No !
-                isValid = False
-            else:   #Yes !
-                isValid = isValid and True
-        elif re.match(r"^float$", dbInfo[db]['Type'][FieldIndex], flags=0):    #Field is a float, checking if user's data is
-            try:
-                float(value)
-            except ValueError:
-                isValid = False
-            else:
-                isValid = isValid and True
-        elif re.match(r"^text$", dbInfo[db]['Type'][FieldIndex], flags=0): #Field is a text, no need to test
-            isValid = isValid and True
-        elif re.match(r"^date$", dbInfo[db]['Type'][FieldIndex], flags=0): #Fields is a date, checking if user's data is
-            if re.match(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', value):  #Yes !
-                isValid = isValid and True
-            else:
-                isValid = False
-        elif re.match(r"^varchar\([0-9]{0,3}\)$", dbInfo[db]['Type'][FieldIndex], flags=0):    #Fields is a float, checking if user's data is
-            length =  re.match(r"^varchar\(([0-9]{0,3})\)$", dbInfo[db]['Type'][FieldIndex])
-            if len(value) <= int(length.group(1)):    #Checking length
-                isValid = isValid and True
-            else:
-                isValid = False
-        elif re.match(r"^datetime$", dbInfo[db]['Type'][FieldIndex], flags=0): #Fields is a datetime, checking if user's data is
-            if re.match(r'^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$', value):
-                isValid = isValid and True
-            else:
-                isValid = False
-        else:
-            isValid = false
         if isValid:
             try:
                 with self.connection.cursor() as cursor:
-                    sql = "UPDATE `" + db + "` SET `" + dbInfo[db]['Name'][FieldIndex] + "`= %s,`modified`=NOW() WHERE `id`= %s"
+                    sql = "UPDATE `" + db + "` SET `" + dbInfo[db]['Name'][FieldIndex] + "`= %s,`updated_at`=NOW() WHERE `id`= %s"
                     cursor.execute(sql, (value, idEntry))
                     return cursor.fetchone()
             except pymysql.err.InternalError as e:
