@@ -52,8 +52,9 @@ while True:
 		c = zerorpc.Client()
 		c.connect("tcp://127.0.0.1:4242")
 		logger.debug(c.RFID())
-		Alarm().SoundOFF()
+		Alarm(0).SoundOFF()
 		if time.time() - timeshot < 10 and time.time() - timeshot > 1:
+			c.RFIDDouble()
 			alarms = DBalarm.all()
 			state = bool(alarms[0]['state'])
 			if state == False:

@@ -60,12 +60,12 @@ i = 0
 
 while True:
 	if AlarmState() == True:
-		a = grovepi.digitalRead(2)
+		a = grovepi.digitalRead(int(homeDevice['code']))
 		if a ==	1:
 			t = t + 1
 		if t == 5:
 			print("Alarme")
-			Alarm().MotionProtocol()
+			Alarm(homeDevice['id']).MotionProtocol()
 			i = 0
 			t = 0
 		if i > 50:

@@ -7,7 +7,7 @@ import signal
 import sqlite3
 
 class Alarm:
-	def __init__(self):
+	def __init__(self, device_id):
 		self.DBdevices = MySQL('devices')
 		self.buzzer = int(self.DBdevices.get('name', 'Buzzer')[0]['code'])
 	def SoundON(self):

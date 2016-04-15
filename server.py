@@ -41,7 +41,7 @@ while True:
 			deviceAlarm = DBalarm.get('device_id', device['id'])[0]
 			if deviceAlarm['state'] == 1:
 				print("Alarme")
-				Alarm().MotionProtocol()
+				Alarm(deviceAlarm['id']).MotionProtocol()
 	else:
 		print(res)
 print("Close")
