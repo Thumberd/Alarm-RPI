@@ -49,24 +49,19 @@ while True:
 		ledInfo = DBdevices.get('name', 'ledInfo')[0]['code']
 		grovepi.pinMode(int(ledInfo), "OUTPUT")
 		grovepi.digitalWrite(int(ledInfo), 0)
-		c = zerorpc.Client()
-		c.connect("tcp://127.0.0.1:4242")
-		logger.debug(c.RFID())
 		Alarm(0).SoundOFF()
-		if time.time() - timeshot < 10 and time.time() - timeshot > 1:
-			c.RFIDDouble()
-			alarms = DBalarm.all()
-			state = bool(alarms[0]['state'])
-			if state == False:
-				print("Waiting")
-				time.sleep(120)
-			for alarm in alarms:
-				print(alarm['id'])
-				DBalarm.modify(alarm['id'], 'state', not state)
-			logger.info("Alarme modifiee partout")
-		else:
-			timeshot = 0
-		timeshot = time.time()
+		c = zerorpc.Client()
+                c.connect("tcp://127.0.0.1:4242")
+                c.RFID()
+		alarms = DBalarm.all()
+		state = bool(alarms[0]['state'])
+		if state == False:
+			print("Waiting")
+			time.sleep(120)
+		for alarm in alarms:
+			print(alarm['id'])
+			DBalarm.modify(alarm['id'], 'state', not state)
+		logger.info("Alarme modifiee partout")
 	else:
 		logger.warning("Unauthorized tag")
 		c = zerorpc.Client()

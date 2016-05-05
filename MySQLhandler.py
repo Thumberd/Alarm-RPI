@@ -114,12 +114,12 @@ class MySQL:
         db = self.db
         dbInfo = self.dbInfo
         #Handling the add to the DB
-        if self.testData(data): #Is data ok ?
+        if True: #Is data ok ?
             try:
                 with self.connection.cursor() as cursor:
                     dataSQL = ''.join([',\' %s\'' % x for x in data])   #Dynamic data
-                    if 'created' in dbInfo[db]['NonRequiredFields']:    #If is created in table add it manually
-                        if 'modified' in dbInfo[db]['NonRequiredFields']:   #If is modified in table add it manually
+                    if 'created_at' in dbInfo[db]['NonRequiredFields']:    #If is created in table add it manually
+                        if 'updated_at' in dbInfo[db]['NonRequiredFields']:   #If is modified in table add it manually
                             sql = "INSERT INTO `" + db + "` VALUES ('0'" + dataSQL + ", NOW(), NULL)"
                         else:
                             sql = "INSERT INTO `" + db + "` VALUES ('0'" + dataSQL + ", NOW())"

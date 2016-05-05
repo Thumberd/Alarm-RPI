@@ -39,8 +39,10 @@ pidDB.commit()
 pidCursor.execute("""SELECT value FROM pid WHERE name = 'camera'""")
 camera = pidCursor.fetchone()[0]
 
+DBevents = MySQL('events')
 DBdevice = MySQL('devices')
 DBalarm = MySQL('alarms')
+DBuser = MySQL('users')
 devices = DBdevice.get('type', 2)
 homeDevice = None
 
@@ -61,10 +63,10 @@ i = 0
 while True:
 	if AlarmState() == True:
 		a = grovepi.digitalRead(int(homeDevice['code']))
+		print(a)
 		if a ==	1:
 			t = t + 1
 		if t == 5:
-			print("Alarme")
 			Alarm(homeDevice['id']).MotionProtocol()
 			i = 0
 			t = 0
