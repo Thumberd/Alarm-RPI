@@ -1,3 +1,23 @@
+#Import logging tool
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+#Define formatter
+formatter = logging.Formatter('%(asctime)s :: [%(levelname)s] %(message)s')
+
+#1st handler for file writing
+file_handler = RotatingFileHandler('/home/pi/System/logs/server.log', 'a', 1000000, 1)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+#2nd handler for console
+steam_handler = logging.StreamHandler()
+steam_handler.setLevel(logging.DEBUG)
+logger.addHandler(steam_handler)
+#Logging config done
+
 import socket
 from Crypto.PublicKey import RSA
 from MySQLhandler import MySQL
@@ -41,7 +61,7 @@ while True:
 			deviceAlarm = DBalarm.get('device_id', device['id'])[0]
 			if deviceAlarm['state'] == 1:
 				print("Alarme")
-				Alarm(deviceAlarm['id']).MotionProtocol()
+				Alarm(device['id']).MotionProtocol()
 	else:
 		print(res)
 print("Close")

@@ -32,13 +32,14 @@ class Alarm:
 		device = DBdevices.get('id', int(self.device_id))
 		DBevents = MySQL('events')
 		DBusers = MySQL('users')
-		for user in DBusers.all():
-			DBevents.add(['Alarme delcenchee', 'Le capteur ' + str(device[0]['name']) + 'sest declenchee', " ", 2, user['id'], 0])
 		for alarm in alarms:
 			if alarm['state'] == 1:
 				os.kill(int(camera), signal.SIGUSR1)
+				for user in DBusers.all():
+		                        DBevents.add(['Alarme declenchee', 'Le capteur ' + str(device[0]['name']) + 'sest declenchee', " ", 2, user['id'], 0])
 				self.SoundON()
 				SMS('Alarme declenchee by ' + str(self.device_id)).all()
 				a = Mail(' ', 'Alarme', 'L\'alarme s\'est declenchee')
 				a.all()
 				a.send()
+				break

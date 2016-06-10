@@ -21,10 +21,10 @@ def CameraFootage(signum, stack):
 			camera.start_preview()
 			camera.annotate_text = time.strftime('%Y-%m-%d %H:%M:%S')
 			time.sleep(1)
-			shutil.rmtree('/home/pi/camera/')
-			os.mkdir('/home/pi/camera')
+			shutil.rmtree('/home/dev/www/public/media/')
+			os.mkdir('/home/dev/www/public/media')
 			i = 0
-			for filename in camera.capture_continuous('/home/pi/camera/img{counter:03d}.jpg'):
+			for filename in camera.capture_continuous('/home/dev/www/public/media/img{counter:03d}.jpg'):
 				if i < 20:
 					print("Captured %s" %filename)
 					time.sleep(1)
