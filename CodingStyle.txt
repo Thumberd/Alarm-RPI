@@ -1,0 +1,18 @@
+#Formatting
+79 Character Line Length
+4 Space Indents
+There should always be a single space around operators (==, +, and, or, etc.), except for keyword arguments.
+Always leave a space after commas as well, unless it's the last character of a line (see No Trailing WhiteSpace below).
+Keep a space between # and the text of comments, and two spaces between code and # for inline comments.
+
+#Names
+
+For consistency use the following naming conventions:
+
+    CONSTANT_NAME = 1
+
+    def function_name(variable_name):
+
+    class ClassName(object):
+
+    attribute_name = 0

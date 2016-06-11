@@ -1,78 +1,71 @@
-#Import logging tool
-import logging
-from logging.handlers import RotatingFileHandler
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-#Define formatter
-formatter = logging.Formatter('%(asctime)s :: [%(levelname)s] %(message)s')
-
-#1st handler for file writing
-file_handler = RotatingFileHandler('/home/pi/System/logs/alarm.log', 'a', 1000000, 1)
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-#2nd handler for console
-steam_handler = logging.StreamHandler()
-steam_handler.setLevel(logging.DEBUG)
-logger.addHandler(steam_handler)
-#Logging config done
-
-logger.info("Base imports")
+# Standard library import
 import signal
 import time
 import grovepi
 import os
 import sqlite3
+
+# Application import
 from MySQLhandler import MySQL
 from AlarmClass import Alarm
+import Utility
 
-#PID Updating
+SCRIPT_NAME = "alarm"
+CYCLE = 50
+REFRESH_FREQUENCY = 0.5
+IS_REAL_MOTION_BY = 5
+
+# Logger initialisation
+logger = Utility.initialize_logger(SCRIPT_NAME)
+
 logger.info("Updating PID")
+Utility.update_PID(SCRIPT_NAME, os.getpid())
 
-pidDB = sqlite3.connect('/home/pi/System/PID.db')
-pidCursor = pidDB.cursor()
-actualPID = os.getpid()
-logger.info("I'm PID " + str(actualPID))
-pidCursor.execute("""UPDATE PID SET value = ? WHERE name = ?""", (actualPID, "alarm"))
-pidDB.commit()
-pidCursor.execute("""SELECT value FROM pid WHERE name = 'camera'""")
-camera = pidCursor.fetchone()[0]
-
-DBevents = MySQL('events')
-DBdevice = MySQL('devices')
-DBalarm = MySQL('alarms')
-DBuser = MySQL('users')
-devices = DBdevice.get('type', 2)
-homeDevice = None
-
-for device in devices:
-	if device['ip'] == '':
-		homeDevice = device
+# Each variables store an object capable of inserting, updating and deleting
+# in the given table
+try:
+    db_events = MySQL('events')
+    db_devices = MySQL('devices')
+    db_alarms = MySQL('alarms')
+    db_users = MySQL('users')
+except:
+    error_msg = "Unable to connect to the database"
+    logger.fatal(error_msg)
+    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
 
-def AlarmState():
-	alarm = DBalarm.get('device_id', homeDevice['id'])[0]
-	state = alarm['state']
-	return state
+# Get all the devices that run an alarm
+home_device = None
+try:
+    devices = db_devices.get('type', 2)
+    # Choose the PIR sensor that is directly connected to the Raspberry Pi
+    for device in devices:
+        if device['ip'] == '':
+            homeDevice = device[0]
+except:
+    error_msg = "Can't read devices database"
+    logger.fatal(error_msg)
+    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
+if home_device:
+    t = 0    # Time the PIR sensor returned one in a cycle
+    i = 0    # Number of fetching in a cycle
 
-t = 0
-i = 0
-
-while True:
-	if AlarmState() == True:
-		a = grovepi.digitalRead(int(homeDevice['code']))
-		print(a)
-		if a ==	1:
-			t = t + 1
-		if t == 5:
-			Alarm(homeDevice['id']).MotionProtocol()
-			i = 0
-			t = 0
-		if i > 50:
-			i = 0
-			t = 0
-		time.sleep(0.5)
-	else:
-		time.sleep(60)
+    while True:
+        # If the alarm is set to ON
+        if Utility.get_alarm_state(home_device['id']):
+            # Read the sensor value
+            a = grovepi.digitalRead(int(homeDevice['code']))
+            logger.debug("Value returned by sensor: {]".format(a))
+            if a == 1:
+                t += 1
+            if t == IS_REAL_MOTION_BY:
+                Alarm(homeDevice['id']).MotionProtocol()
+                i = 0
+                t = 0
+            if i > CYCLE:
+                i = 0
+                t = 0
+            time.sleep(REFRESH_FREQUENCY)
+        else:
+            time.sleep(60)
