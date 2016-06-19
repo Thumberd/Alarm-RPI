@@ -4,6 +4,8 @@ import grovepi
 import time
 import os
 import signal
+import picamera
+import shutil
 
 # Third party imports
 from celery import Celery
@@ -108,10 +110,6 @@ def alarm_protocol(alarm_id):
     db_users = MySQL('users')
     for alarm in alarms:
         if alarm['state'] == 1:
-            # Get the PID of the camera script
-            camera = Utility.get_camera_PID()
-            # Send a signal to record a timelapse
-            os.kill(camera, signal.SIGUSR1)
             now = datetime.now()
             # Send a notification to each user
             Utility.sound(1)
@@ -123,4 +121,24 @@ def alarm_protocol(alarm_id):
                                EVENT_IDENTIFIER,
                                user['id'],
                                0])
+            timelapse.delay()
+            break
+
+
+@celery.task
+def timelapse():
+    logger.debug("Beginning timelapse")
+    with picamera.PiCamera() as camera:
+        camera.start_preview()
+        camera.annotate_text = time.strftime('%Y-%m-%d %H:%M:%S')
+        time.sleep(1)
+        shutil.rmtree('/home/dev/www/public/media/')
+        os.mkdir('/home/dev/www/public/media')
+        i = 0
+        for filename in camera.capture_continuous('/home/dev/www/public/media/img{counter:03d}.jpg'):
+            if i < 20:
+                time.sleep(0.5)
+                i += 1
+            else:
                 break
+        logger.info("Timelapse captured")

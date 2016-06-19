@@ -1,6 +1,5 @@
 # Standard library imports
 import serial
-import grovepi
 import time
 import sys
 import zerorpc

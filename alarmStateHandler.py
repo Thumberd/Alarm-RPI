@@ -1,7 +1,9 @@
+"""WARNING
+TJHIS FILE IS NOT USED ANYMORE
+THE REPLACEMENT CODE CAN BE FOUND IN THE CELERY WORKER"""
 # Standard library import
 import time
 import socket
-from Crypto.PublicKey import RSA
 from datetime import datetime
 
 # Application import
