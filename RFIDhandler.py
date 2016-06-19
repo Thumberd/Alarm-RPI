@@ -1,69 +1,66 @@
-#Import logging tool
-import logging
-from logging.handlers import RotatingFileHandler
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-#Define formatter
-formatter = logging.Formatter('%(asctime)s :: [%(levelname)s] %(message)s')
-
-#1st handler for file writing
-file_handler = RotatingFileHandler('/home/pi/System/logs/RFIDhandler.log', 'a', 1000000, 1)
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-#2nd handler for console
-steam_handler = logging.StreamHandler()
-steam_handler.setLevel(logging.DEBUG)
-logger.addHandler(steam_handler)
-#Logging config done
-
-logger.info("Base imports")
+# Standard library imports
 import serial
-import time
-from MySQLhandler import *
-import sys
-from messaging import *
-from AlarmClass import *
-import zerorpc
-from AlarmClass import Alarm
 import grovepi
+import time
+import sys
+import zerorpc
 
-logger.info("Intialize serial connection with Arduino")
+# Application library imports
+from MySQLhandler import *
+import Utility
+
+SCRIPT_NAME = "RFIDhandler"
+TIME_BEFORE_ACTIVATION = 120
+
+# Logger initialisation
+logger = Utility.initialize_logger(SCRIPT_NAME)
+
+logger.info("Initialize serial connection with Arduino")
 try:
-	s = serial.Serial('/dev/ttyACM0', 9600)
+    s = serial.Serial('/dev/ttyACM0', 9600)
 except:
-	logger.critical("Can't connect to the Arduino")
-	sys.exit()
+    error_msg = "Unable to connect to the Arduino"
+    logger.critical(error_msg)
+    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+    time.sleep(50000)  # Wait a moment for a possible fix
+    sys.exit()  # Close the process and hope for a restart (-> supervisor)
 
-DBdevices = MySQL('devices')
-DBalarm = MySQL('alarms')
-usersDB = MySQL('users')
+# Each variables store an object capable of inserting, updating and deleting
+# in the given table
+try:
+    db_devices = MySQL('devices')
+    db_alarms = MySQL('alarms')
+    db_users = MySQL('users')
+except:
+    error_msg = "Unable to connect to the database"
+    logger.fatal(error_msg)
+    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+    time.sleep(50000)
+    sys.exit()
+
 timeshot = 0
 
 while True:
-	line = s.readline()
-	logger.debug(line.split('\r'))
-	a = usersDB.get('RFID', line.split('\r')[0])
-	if a != None:
-		ledInfo = DBdevices.get('name', 'ledInfo')[0]['code']
-		grovepi.pinMode(int(ledInfo), "OUTPUT")
-		grovepi.digitalWrite(int(ledInfo), 0)
-		Alarm(0).SoundOFF()
-		c = zerorpc.Client()
-                c.connect("tcp://127.0.0.1:4242")
-                c.RFID()
-		alarms = DBalarm.all()
-		state = bool(alarms[0]['state'])
-		if state == False:
-			print("Waiting")
-			time.sleep(120)
-		for alarm in alarms:
-			print(alarm['id'])
-			DBalarm.modify(alarm['id'], 'state', not state)
-		logger.info("Alarme modifiee partout")
-	else:
-		logger.warning("Unauthorized tag")
-		c = zerorpc.Client()
-		c.connect("tcp://127.0.0.1:4242")
-		print(c.RFIDError())
+    line = s.readline()  # Get the line sent by the Arduino
+    logger.debug(line.split('\r'))
+    user = db_users.get('RFID', line.split('\r')[0])
+    # [user] represents the owner's row of the RFID tag passed
+    # if it exists
+    if user:
+        Utility.switch_led_info(0)
+        Utility.sound(0)
+        c = zerorpc.Client()
+        c.connect("tcp://127.0.0.1:4242")
+        c.RFID()
+        alarms = db_alarms.all()
+        state = bool(alarms[0]['state'])
+        if not state:
+            logger.debug("Waiting {} sec before activation".format(TIME_BEFORE_ACTIVATION))
+            time.sleep(TIME_BEFORE_ACTIVATION)
+        for alarm in alarms:
+            db_alarms.modify(alarm['id'], 'state', not state)
+    else:
+        logger.warning("Unauthorized tag")
+        c = zerorpc.Client()
+        c.connect("tcp://127.0.0.1:4242")
+        c.RFIDError()

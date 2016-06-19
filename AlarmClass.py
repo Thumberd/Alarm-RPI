@@ -1,3 +1,6 @@
+"""WARNING
+FILE NOT USED ANYMORE
+WILL BE DELETED"""
 import time
 import grovepi
 from MySQLhandler import *

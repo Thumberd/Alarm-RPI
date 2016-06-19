@@ -3,6 +3,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import sqlite3
 import os
+import grovepi
 
 # Application import
 from MySQLhandler import MySQL
@@ -10,6 +11,7 @@ from MySQLhandler import MySQL
 LOG_DIR = "/home/pi/System/logs/"
 PID_FILE = "/home/pi/System/PID.db"
 
+db_devices = MySQL('devices')
 
 def initialize_logger(name_of_script):
     logger = logging.getLogger()
@@ -28,7 +30,7 @@ def initialize_logger(name_of_script):
     logger.addHandler(steam_handler)
     # Logging config done
 
-    #Return the logger object
+    # Return the logger object
     return logger
 
 
@@ -46,7 +48,7 @@ def get_camera_PID():
     pid_cursor.execute("""SELECT value FROM pid WHERE name = 'camera'""")
     camera = pid_cursor.fetchone()[0]
     pid_db.close()
-    return camera
+    return int(camera)
 
 
 def launch_fatal_process_alert(script_name, error):
@@ -59,3 +61,16 @@ def get_alarm_state(m_id):
     alarm = db_alarms.get('device_id', m_id)[0]
     state = alarm['state']
     return state
+
+
+# Function used to change the state of the led plugged in the Raspberry
+# @params
+# @state int 1 or 0
+def switch_led_info(state):
+    info_led = int(db_devices.get('name', 'ledInfo')[0]['code'])
+    grovepi.pinMode(info_led, "OUTPUT")
+    grovepi.digitalWrite(info_led, state)
+
+def sound(state):
+    buzzer = int(db_devices.get('name', 'Buzzer')[0]['code'])
+    grovepi.digitalWrite(buzzer, state)
