@@ -170,5 +170,5 @@ def send_code_garage(garage_id, ip, user_id):
     code = ""
     for i in range(0, 8):
         code += str(random.randrange(0,9))
-    c.query("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, NOW(), ?, ?)", (code, garage_id, user_id, ip))
+    c.execute("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, datetime(), ?, ?)", (code, garage_id, user_id, ip))
     db.commit()
