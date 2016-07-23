@@ -8,6 +8,8 @@ import picamera
 import shutil
 import requests
 import bs4
+import sqlite3
+import random
 
 # Third party imports
 from celery import Celery
@@ -36,6 +38,8 @@ alarms = MySQL('alarms')
 
 celery = Celery('worker', broker='amqp://guest:guest@localhost')
 
+db = sqlite3.connect("code.db")
+c = db.cursor()
 
 def send_to(ip, msg):
     r = requests.get("http://{ip}:3540/alarm/{state}".format(ip=ip, state=msg))
@@ -160,3 +164,11 @@ def timelapse():
             else:
                 break
         logger.info("Timelapse captured")
+
+@celery.task
+def send_code_garage(garage_id, ip, user_id):
+    code = ""
+    for i in range(0, 8):
+        code += str(random.randrange(0,9))
+    c.query("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, NOW(), ?, ?)", (code, garage_id, user_id, ip))
+    db.commit()

@@ -39,6 +39,7 @@ def handle_request(request, device):
     elif request[0] == "plantHumiditys":
         db_plant_humiditys.add([int(request[1]), device['ip']])
     elif request[0] == "alarm":
+        print('alarm')
         alarm = db_alarms.get('device_id', device['id'])[0]
         if alarm['state'] == 1:
             logger.info("{device} triggered the alarm. Launching protocol.".format(device=device['name']))
