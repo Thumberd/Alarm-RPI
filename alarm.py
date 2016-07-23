@@ -21,8 +21,6 @@ alarm_worker_call = None
 # Logger initialisation
 logger = Utility.initialize_logger(SCRIPT_NAME)
 
-logger.info("Updating PID")
-Utility.update_PID(SCRIPT_NAME, os.getpid())
 
 # Each variables store an object capable of inserting, updating and deleting
 # in the given table
@@ -44,7 +42,7 @@ try:
     # Choose the PIR sensor that is directly connected to the Raspberry Pi
     for device in devices:
         if device['ip'] == '':
-            home_device = device[0]
+            home_device = device
 except:
     error_msg = "Can't read devices database"
     logger.fatal(error_msg)
@@ -59,7 +57,7 @@ if home_device:
         if Utility.get_alarm_state(home_device['id']):
             # Read the sensor value
             a = grovepi.digitalRead(int(home_device['code']))
-            logger.debug("Value returned by sensor: {]".format(a))
+            logger.debug("Value returned by sensor: {}".format(a))
             if a == 1:
                 t += 1
             if t == IS_REAL_MOTION_BY:
@@ -67,6 +65,7 @@ if home_device:
                 protocol_launched = True
                 i = 0
                 t = 0
+                time.sleep(10)
             if i > CYCLE:
                 i = 0
                 t = 0

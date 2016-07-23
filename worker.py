@@ -6,6 +6,8 @@ import os
 import signal
 import picamera
 import shutil
+import requests
+import bs4
 
 # Third party imports
 from celery import Celery
@@ -19,13 +21,13 @@ from messaging import *
 
 from datetime import datetime
 
-SCRIPT_NAME = "celery"
+SCRIPT_NAME = "Celery2"
 SALT = "first"
-TIME_BEFORE_ALARM = 500
+TIME_BEFORE_ALARM = 60 * 5
 EVENT_IDENTIFIER = 1
 
 STRING_ALARM_TITLE = "Alarme declenchee"
-STRING_ALARM_CONTENT = "Le capteur {sensor} s'est declenchee a {hour}:{minute}."
+STRING_ALARM_CONTENT = "Le capteur {sensor} s est declenchee a {hour}:{minute}."
 
 logger = Utility.initialize_logger(SCRIPT_NAME)
 
@@ -36,23 +38,24 @@ celery = Celery('worker', broker='amqp://guest:guest@localhost')
 
 
 def send_to(ip, msg):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.connect((ip, 5400))
-        s.send(SALT + msg)
-        s.close()
-    except:
-        logger.error("Error: ")
+    r = requests.get("http://{ip}:3540/alarm/{state}".format(ip=ip, state=msg))
+    
 
 # Each variables store an object capable of inserting, updating and deleting
 # in the given table
 try:
    db_devices = MySQL('devices')
    db_alarms = MySQL('alarms')
+   db_temperatures = MySQL('temperatures')
 except:
    error_msg = "Unable to connect to the database"
    logger.fatal(error_msg)
    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+
+@periodic_task(run_every=crontab(hour='*', minute='*/5'))
+def checkBaseTemperature():
+    temp = grovepi.temp(1)
+    db_temperatures.add([round(temp,2), 21])
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_scheduled():
@@ -70,6 +73,8 @@ def check_for_alarm_scheduled():
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_notifications():
+    print("tets")
+    logger.info("Checking alarm")
     # Get all the alarms which are currently ON
     alarm_up = db_alarms.get('state', 1)
     if alarm_up:
@@ -79,7 +84,7 @@ def check_for_alarm_notifications():
             if duree.total_seconds() < 120.0:
                 device = db_devices.get('id', alarm['device_id'])[0]
                 if device['ip'] != "":
-                    send_to(device['ip'], "STATE1")
+                    send_to(device['ip'], "ON")
     # Get all the alarm which are currently OFF
     alarmDOWN = db_alarms.get('state', 0)
     if alarmDOWN:
@@ -88,7 +93,7 @@ def check_for_alarm_notifications():
             if duree.total_seconds() < 120.0:
                 device = db_devices.get('id', alarm['device_id'])[0]
                 if device['ip'] != "":
-                    send_to(device['ip'], "STATE0")
+                    send_to(device['ip'], "OFF")
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/3'))
@@ -97,11 +102,25 @@ def check_for_alarm_led_status():
     if alarm['state'] == False:
         Utility.switch_led_info(0)
 
-
+@periodic_task(run_every=crontab(hour='3', minute='0'))
+def change_UI_background():
+    BASE_URL = "http://apod.nasa.gov/"
+    PAGE = "apod/astropix.html"
+    nasa_page = requests.get(BASE_URL + PAGE)
+    if nasa_page.status_code == 200:
+        soup = bs4.BeautifulSoup(nasa_page.text)
+        img_link = soup.body.center.find_all('p')[1].find('img')['src']
+        img_r = requests.get(BASE_URL + img_link, stream=True)
+        if img_r.status_code == 200:
+            with open('/home/pi/ElectronUI-RPI/iotd.jpg', 'wb') as f:
+                img_r.decode_content = True
+                shutil.copyfileobj(img_r.raw, f)
+    
 # Asynchronous process triggered when the motion sensor detects activity
 # and only if the alarm is set to ON
 @celery.task
 def alarm_protocol(alarm_id):
+    print("aLaunv")
     Utility.switch_led_info(1)
     time.sleep(TIME_BEFORE_ALARM)  # Wait [TIME_BEFORE_ALARM]/60 minutes
     alarms = db_alarms.all()
@@ -132,8 +151,7 @@ def timelapse():
         camera.start_preview()
         camera.annotate_text = time.strftime('%Y-%m-%d %H:%M:%S')
         time.sleep(1)
-        shutil.rmtree('/home/dev/www/public/media/')
-        os.mkdir('/home/dev/www/public/media')
+        #os.mkdir('/home/dev/www/public/media')
         i = 0
         for filename in camera.capture_continuous('/home/dev/www/public/media/img{counter:03d}.jpg'):
             if i < 20:

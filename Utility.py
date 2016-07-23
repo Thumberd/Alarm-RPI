@@ -4,6 +4,7 @@ from logging.handlers import RotatingFileHandler
 import sqlite3
 import os
 import grovepi
+import socket
 
 # Application import
 from MySQLhandler import MySQL
@@ -25,9 +26,6 @@ def initialize_logger(name_of_script):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     # 2nd handler for console
-    steam_handler = logging.StreamHandler()
-    steam_handler.setLevel(logging.DEBUG)
-    logger.addHandler(steam_handler)
     # Logging config done
 
     # Return the logger object
@@ -74,3 +72,8 @@ def switch_led_info(state):
 def sound(state):
     buzzer = int(db_devices.get('name', 'Buzzer')[0]['code'])
     grovepi.digitalWrite(buzzer, state)
+    if state == 1:    
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('192.168.0.47', 3458))
+        s.send("SOUNDGOON".encode())
+        print("Okkkk")

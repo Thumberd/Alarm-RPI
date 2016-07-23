@@ -9,7 +9,7 @@ from MySQLhandler import *
 import Utility
 
 SCRIPT_NAME = "RFIDhandler"
-TIME_BEFORE_ACTIVATION = 120
+TIME_BEFORE_ACTIVATION = 60 * 5
 
 # Logger initialisation
 logger = Utility.initialize_logger(SCRIPT_NAME)
@@ -53,6 +53,12 @@ while True:
         c.RFID()
         alarms = db_alarms.all()
         state = bool(alarms[0]['state'])
+        is_one_alarm_up = False
+        for alarm in alarms:
+            is_one_alarm_up = is_one_alarm_up or bool(alarm['state'])
+        if is_one_alarm_up and not state:
+            for alarm in alarms:
+                db_alarms.modify(alarm['id'], 'state', state)
         if not state:
             logger.debug("Waiting {} sec before activation".format(TIME_BEFORE_ACTIVATION))
             time.sleep(TIME_BEFORE_ACTIVATION)
