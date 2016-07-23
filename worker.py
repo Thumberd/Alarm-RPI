@@ -10,6 +10,8 @@ import requests
 import bs4
 import sqlite3
 import random
+from datetime import datetime
+
 
 # Third party imports
 from celery import Celery
@@ -21,11 +23,11 @@ from MySQLhandler import MySQL
 import Utility
 from messaging import *
 
-from datetime import datetime
 
 SCRIPT_NAME = "Celery2"
 SALT = "first"
 TIME_BEFORE_ALARM = 60 * 5
+MAX_TIME_FOR_VALIDATION_CODE = 60 * 10
 EVENT_IDENTIFIER = 1
 
 STRING_ALARM_TITLE = "Alarme declenchee"
@@ -172,3 +174,15 @@ def send_code_garage(garage_id, ip, user_id):
         code += str(random.randrange(0,9))
     c.execute("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, datetime(), ?, ?)", (code, garage_id, user_id, ip))
     db.commit()
+
+@celery.task
+def send_validation_code(code, ip, user_id):
+    c.execute("SELECT * FROM code WHERE code = ?", (code, ))
+    data = c.fetchone()
+    if data['code'] == code:
+        time_code = datetime.strptime(data['time'], "%Y-%m-%d %H:%M:%S.%f")
+        now = datetime.now()
+        difference = time_code - now
+        if difference.total_seconds() < MAX_TIME_FOR_VALIDATION_CODE:
+            if ip == data['ip'] and data['user_id'] == user_id:
+                print("Go up garage !")
