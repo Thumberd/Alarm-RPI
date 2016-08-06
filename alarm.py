@@ -65,15 +65,12 @@ if home_device:
                 protocol_launched = True
                 i = 0
                 t = 0
-                time.sleep(10)
+                time.sleep(60)
             if i > CYCLE:
                 i = 0
                 t = 0
             time.sleep(REFRESH_FREQUENCY)
         else:
-            if protocol_launched:
-                alarm_worker_call.revoke()
-                protocol_launched = False
             time.sleep(60)
 else:
     time.sleep(50000)

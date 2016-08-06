@@ -27,21 +27,17 @@ from messaging import *
 SCRIPT_NAME = "Celery2"
 SALT = "first"
 TIME_BEFORE_ALARM = 60 * 5
-MAX_TIME_FOR_VALIDATION_CODE = 60 * 10
+MAX_TIME_FOR_VALIDATION_CODE = 60 * 130
 EVENT_IDENTIFIER = 1
 
 STRING_ALARM_TITLE = "Alarme declenchee"
 STRING_ALARM_CONTENT = "Le capteur {sensor} s est declenchee a {hour}:{minute}."
 
-logger = Utility.initialize_logger(SCRIPT_NAME)
 
-scheduled = MySQL('scheduled')
+
 alarms = MySQL('alarms')
 
 celery = Celery('worker', broker='amqp://guest:guest@localhost')
-
-db = sqlite3.connect("code.db")
-c = db.cursor()
 
 def send_to(ip, msg):
     r = requests.get("http://{ip}:3540/alarm/{state}".format(ip=ip, state=msg))
@@ -55,7 +51,7 @@ try:
    db_temperatures = MySQL('temperatures')
 except:
    error_msg = "Unable to connect to the database"
-   logger.fatal(error_msg)
+   print(error_msg)
    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
 @periodic_task(run_every=crontab(hour='*', minute='*/5'))
@@ -68,6 +64,7 @@ def check_for_alarm_scheduled():
     now = datetime.now()
     hour = now.hour
     minute = now.minute
+    scheduled = MySQL('scheduled')
     for aScheduled in scheduled.all():
         if int(aScheduled['beginHour']) == hour and int(aScheduled['beginMinute']) == minute:
             alarm = alarms.get('id', aScheduled['alarm_id'])[0]
@@ -79,8 +76,7 @@ def check_for_alarm_scheduled():
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_notifications():
-    print("tets")
-    logger.info("Checking alarm")
+    print("Check for alarm notifications")
     # Get all the alarms which are currently ON
     alarm_up = db_alarms.get('state', 1)
     if alarm_up:
@@ -126,7 +122,7 @@ def change_UI_background():
 # and only if the alarm is set to ON
 @celery.task
 def alarm_protocol(alarm_id):
-    print("aLaunv")
+    print("Alarm protocol launched")
     Utility.switch_led_info(1)
     time.sleep(TIME_BEFORE_ALARM)  # Wait [TIME_BEFORE_ALARM]/60 minutes
     alarms = db_alarms.all()
@@ -137,7 +133,6 @@ def alarm_protocol(alarm_id):
         if alarm['state'] == 1:
             now = datetime.now()
             # Send a notification to each user
-            Utility.sound(1)
             SMS(STRING_ALARM_CONTENT.format(sensor=device[0]['name'], hour=now.hour, minute=now.minute)).all()
             for user in db_users.all():
                 db_events.add([STRING_ALARM_TITLE,
@@ -147,12 +142,13 @@ def alarm_protocol(alarm_id):
                                user['id'],
                                0])
             timelapse.delay()
+            Utility.sound(1)
             break
 
 
 @celery.task
 def timelapse():
-    logger.debug("Beginning timelapse")
+    print("Beginning timelapse")
     with picamera.PiCamera() as camera:
         camera.start_preview()
         camera.annotate_text = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -165,24 +161,40 @@ def timelapse():
                 i += 1
             else:
                 break
-        logger.info("Timelapse captured")
+        print("Timelapse captured")
 
 @celery.task
 def send_code_garage(garage_id, ip, user_id):
+    db = sqlite3.connect("code.db")
+    c = db.cursor()
     code = ""
     for i in range(0, 8):
         code += str(random.randrange(0,9))
     c.execute("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, datetime(), ?, ?)", (code, garage_id, user_id, ip))
     db.commit()
+    SMS(code).byID(user_id)
+    db.close()
+
+@celery.task
+def garage_authorized(garage_id, ip, user_id):
+    device = db_devices.get('ip', ip)
+    if device:
+        r = requests.get("http://192.168.0.50:3540/garage/{}".format(garage_id))
 
 @celery.task
 def send_validation_code(code, ip, user_id):
+    db = sqlite3.connect("code.db")
+    c = db.cursor()
+    print("Received validation code {}".format(code))
     c.execute("SELECT * FROM code WHERE code = ?", (code, ))
     data = c.fetchone()
-    if data['code'] == code:
-        time_code = datetime.strptime(data['time'], "%Y-%m-%d %H:%M:%S.%f")
+    if int(data[1]) == int(code):
+        time_code = datetime.strptime(data[2], "%Y-%m-%d %H:%M:%S")
         now = datetime.now()
-        difference = time_code - now
+        difference = now - time_code
+        print(difference.total_seconds())
         if difference.total_seconds() < MAX_TIME_FOR_VALIDATION_CODE:
-            if ip == data['ip'] and data['user_id'] == user_id:
-                print("Go up garage !")
+            if ip == data[5] and data[4] == user_id:
+                print("Go up garage ! {}".format(data[3]))
+                r = requests.get("http://192.168.0.50:3540/garage/{}".format(data[3]))
+    db.close()
