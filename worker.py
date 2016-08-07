@@ -43,40 +43,54 @@ def send_to(ip, msg):
     r = requests.get("http://{ip}:3540/alarm/{state}".format(ip=ip, state=msg))
     
 
-# Each variables store an object capable of inserting, updating and deleting
-# in the given table
-try:
-   db_devices = MySQL('devices')
-   db_alarms = MySQL('alarms')
-   db_temperatures = MySQL('temperatures')
-except:
-   error_msg = "Unable to connect to the database"
-   print(error_msg)
-   Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
 @periodic_task(run_every=crontab(hour='*', minute='*/5'))
 def checkBaseTemperature():
+    try:
+        db_temperatures = MySQL('temperatures')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     temp = grovepi.temp(1)
     db_temperatures.add([round(temp,2), 21])
+    db_temperatures.close()
+    print("Temperature added {}".format(temp))
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_scheduled():
+    print("Checking for alarm scheduled")
+    try:
+        db_scheduled = MySQL('scheduled')
+        db_alarms = MySQL('alarms')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     now = datetime.now()
     hour = now.hour
     minute = now.minute
-    scheduled = MySQL('scheduled')
-    for aScheduled in scheduled.all():
+    for aScheduled in db_scheduled.all():
         if int(aScheduled['beginHour']) == hour and int(aScheduled['beginMinute']) == minute:
-            alarm = alarms.get('id', aScheduled['alarm_id'])[0]
-            alarms.modify(alarm['id'], 'state', True)
+            alarm = db_alarms.get('id', aScheduled['alarm_id'])[0]
+            db_alarms.modify(alarm['id'], 'state', True)
         elif int(aScheduled['endHour']) == hour and int(aScheduled['endMinute']) == minute:
-            alarm = alarms.get('id', aScheduled['alarm_id'])[0]
-            alarms.modify(alarm['id'], 'state', False)
+            alarm = db_alarms.get('id', aScheduled['alarm_id'])[0]
+            db_alarms.modify(alarm['id'], 'state', False)
+    db_alarms.close()
+    db_scheduled.close()
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_notifications():
     print("Check for alarm notifications")
+    try:
+        db_alarms = MySQL('alarms')
+        db_devices = MySQL('devices')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     # Get all the alarms which are currently ON
     alarm_up = db_alarms.get('state', 1)
     if alarm_up:
@@ -96,13 +110,22 @@ def check_for_alarm_notifications():
                 device = db_devices.get('id', alarm['device_id'])[0]
                 if device['ip'] != "":
                     send_to(device['ip'], "OFF")
+    db_alarms.close()
+    db_devices.close()
 
 
 @periodic_task(run_every=crontab(hour='*', minute='*/3'))
 def check_for_alarm_led_status():
+    try:
+        db_alarms = MySQL('alarms')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     alarm = db_alarms.all()[0]
     if alarm['state'] == False:
         Utility.switch_led_info(0)
+    db_alarms.close()
 
 @periodic_task(run_every=crontab(hour='3', minute='0'))
 def change_UI_background():
@@ -123,12 +146,19 @@ def change_UI_background():
 @celery.task
 def alarm_protocol(alarm_id):
     print("Alarm protocol launched")
+    try:
+        db_alarms = MySQL('alarms')
+        db_devices = MySQL('devices')
+        db_events = MySQL('events')
+        db_users = MySQL('users')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     Utility.switch_led_info(1)
     time.sleep(TIME_BEFORE_ALARM)  # Wait [TIME_BEFORE_ALARM]/60 minutes
     alarms = db_alarms.all()
     device = db_devices.get('id', int(alarm_id))  # Get the device specified
-    db_events = MySQL('events')
-    db_users = MySQL('users')
     for alarm in alarms:
         if alarm['state'] == 1:
             now = datetime.now()
@@ -144,11 +174,14 @@ def alarm_protocol(alarm_id):
             timelapse.delay()
             Utility.sound(1)
             break
+    db_devices.close()
+    db_alarms.close()
+    db_events.close()
+    db_users.close()
 
 
 @celery.task
 def timelapse():
-    print("Beginning timelapse")
     with picamera.PiCamera() as camera:
         camera.start_preview()
         camera.annotate_text = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -161,7 +194,7 @@ def timelapse():
                 i += 1
             else:
                 break
-        print("Timelapse captured")
+    print("Timelapse captured")
 
 @celery.task
 def send_code_garage(garage_id, ip, user_id):
@@ -177,9 +210,16 @@ def send_code_garage(garage_id, ip, user_id):
 
 @celery.task
 def garage_authorized(garage_id, ip, user_id):
+    try:
+        db_devices = MySQL('devices')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     device = db_devices.get('ip', ip)
     if device:
         r = requests.get("http://192.168.0.50:3540/garage/{}".format(garage_id))
+    db_devices.close()
 
 @celery.task
 def send_validation_code(code, ip, user_id):
