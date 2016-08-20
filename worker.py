@@ -24,7 +24,7 @@ import Utility
 from messaging import *
 
 
-SCRIPT_NAME = "Celery2"
+SCRIPT_NAME = "Celery"
 SALT = "first"
 TIME_BEFORE_ALARM = 60 * 5
 MAX_TIME_FOR_VALIDATION_CODE = 60 * 130
