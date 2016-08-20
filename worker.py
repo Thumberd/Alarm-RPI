@@ -47,14 +47,14 @@ def send_to(ip, msg):
 @periodic_task(run_every=crontab(hour='*', minute='*/5'))
 def checkBaseTemperature():
     try:
-        db_temperatures = MySQL('temperatures')
+        db_datas = MySQL('datas')
     except:
         error_msg = "Unable to connect to the database"
         print(error_msg)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     temp = grovepi.temp(1)
-    db_temperatures.add([round(temp,2), 21])
-    db_temperatures.close()
+    db_datas.add([1, round(temp,2), 21])
+    db_datas.close()
     print("Temperature added {}".format(temp))
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
@@ -219,6 +219,7 @@ def garage_authorized(garage_id, ip, user_id):
     device = db_devices.get('ip', ip)
     if device:
         r = requests.get("http://192.168.0.50:3540/garage/{}".format(garage_id))
+        print("Go up garage {}".format(garage_id))
     db_devices.close()
 
 @celery.task

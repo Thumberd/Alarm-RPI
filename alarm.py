@@ -57,7 +57,7 @@ if home_device:
         if Utility.get_alarm_state(home_device['id']):
             # Read the sensor value
             a = grovepi.digitalRead(int(home_device['code']))
-            logger.debug("Value returned by sensor: {}".format(a))
+            print("Value returned by sensor: {}".format(a))
             if a == 1:
                 t += 1
             if t == IS_REAL_MOTION_BY:
