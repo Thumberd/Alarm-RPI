@@ -29,9 +29,13 @@ SALT = "first"
 TIME_BEFORE_ALARM = 60 * 5
 MAX_TIME_FOR_VALIDATION_CODE = 60 * 130
 EVENT_IDENTIFIER = 1
+EVENT_IDENTIFIER_PLANT = 2
 
 STRING_ALARM_TITLE = "Alarme declenchee"
 STRING_ALARM_CONTENT = "Le capteur {sensor} s est declenchee a {hour}:{minute}."
+
+STRING_PLANT_WATERING = "Une plante a besoin de vous !"
+STRING_PLANT_WATERING_CONTENT = "La plant {plant} a besoin d'eau !"
 
 
 
@@ -56,6 +60,34 @@ def checkBaseTemperature():
     db_datas.add([1, round(temp,2), 21])
     db_datas.close()
     print("Temperature added {}".format(temp))
+
+@periodic_task(run_every=crontab(hour='*', minute='*/6'))
+def checkPlantWatering():
+    try:
+        db_datas = MySQL('datas')
+        db_events = MySQL('events')
+        db_users = MySQL('users')
+        db_devices = MySQL('devices')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+    for device in db_devices.all():
+        if device['type'] == 4:
+            cursor = db_datas.connection.cursor()
+            cursor.execute("SELECT * FROM datas WHERE device_id = {id} AND data_type = 3 ORDER BY created_at DESC LIMIT 0,1".format(id=device['id']))
+            result = cursor.fetchone()
+            if result:
+                if result['value'] > 55:
+                    for user in db_users.all():
+                        db_events.add([STRING_PLANT_WATERING,
+                                       STRING_ALARM_CONTENT.format(plant=device['name']),
+                                       " ",
+                                       EVENT_IDENTIFIER_PLANT,
+                                       user['id'],
+                                       0])
+
+
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_scheduled():
@@ -97,7 +129,7 @@ def check_for_alarm_notifications():
         for alarm in alarm_up:
             # Get the time since the alarm's state changed
             duree = datetime.now() - alarm['updated_at']
-            if duree.total_seconds() < 120.0:
+            if duree.total_seconds() < 60 * 6:
                 device = db_devices.get('id', alarm['device_id'])[0]
                 if device['ip'] != "":
                     send_to(device['ip'], "ON")
@@ -106,7 +138,7 @@ def check_for_alarm_notifications():
     if alarmDOWN:
         for alarm in alarmDOWN:
             duree = datetime.now() - alarm['updated_at']
-            if duree.total_seconds() < 120.0:
+            if duree.total_seconds() < 60 * 6:
                 device = db_devices.get('id', alarm['device_id'])[0]
                 if device['ip'] != "":
                     send_to(device['ip'], "OFF")
