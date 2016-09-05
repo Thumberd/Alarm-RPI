@@ -61,7 +61,7 @@ def checkBaseTemperature():
     db_datas.close()
     print("Temperature added {}".format(temp))
 
-@periodic_task(run_every=crontab(hour='*', minute='*/6'))
+@periodic_task(run_every=crontab(hour='*', minute='*/2'))
 def checkPlantWatering():
     try:
         db_datas = MySQL('datas')
@@ -75,13 +75,14 @@ def checkPlantWatering():
     for device in db_devices.all():
         if device['type'] == 4:
             cursor = db_datas.connection.cursor()
-            cursor.execute("SELECT * FROM datas WHERE device_id = {id} AND data_type = 3 ORDER BY created_at DESC LIMIT 0,1".format(id=device['id']))
-            result = cursor.fetchone()
+            cursor.execute("SELECT * FROM datas WHERE device_id = {id} AND data_type = 3 ORDER BY created_at DESC LIMIT 0,2".format(id=device['id']))
+            result = cursor.fetchall()
             if result:
-                if result['value'] > 55:
-                    for user in db_users.all():
-                        db_events.add([STRING_PLANT_WATERING,
-                                       STRING_ALARM_CONTENT.format(plant=device['name']),
+                if not result[1]['value'] > 55:
+                    if result[0]['value'] > 55:
+                        for user in db_users.all():
+                            db_events.add([STRING_PLANT_WATERING,
+                                       STRING_PLANT_WATERING_CONTENT.format(plant=device['name']),
                                        " ",
                                        EVENT_IDENTIFIER_PLANT,
                                        user['id'],
