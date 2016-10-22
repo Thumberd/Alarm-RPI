@@ -12,7 +12,6 @@ from MySQLhandler import MySQL
 LOG_DIR = "/home/pi/System/logs/"
 PID_FILE = "/home/pi/System/PID.db"
 
-db_devices = MySQL('devices')
 
 def initialize_logger(name_of_script):
     logger = logging.getLogger()
@@ -58,6 +57,7 @@ def get_alarm_state(m_id):
     db_alarms = MySQL('alarms')
     alarm = db_alarms.get('device_id', m_id)[0]
     state = alarm['state']
+    db_alarms.close()
     return state
 
 
@@ -65,11 +65,14 @@ def get_alarm_state(m_id):
 # @params
 # @state int 1 or 0
 def switch_led_info(state):
+    db_devices = MySQL('devices')
     info_led = int(db_devices.get('name', 'ledInfo')[0]['code'])
     grovepi.pinMode(info_led, "OUTPUT")
     grovepi.digitalWrite(info_led, state)
+    db_devices.close()
 
 def sound(state):
+    db_devices = MySQL('devices')
     buzzer = int(db_devices.get('name', 'Buzzer')[0]['code'])
     grovepi.digitalWrite(buzzer, state)
     if state == 1:    
@@ -77,3 +80,4 @@ def sound(state):
         s.connect(('192.168.0.47', 3458))
         s.send("SOUNDGOON".encode())
         print("Okkkk")
+    db_devices.close()

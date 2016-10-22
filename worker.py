@@ -35,7 +35,7 @@ STRING_ALARM_TITLE = "Alarme declenchee"
 STRING_ALARM_CONTENT = "Le capteur {sensor} s est declenchee a {hour}:{minute}."
 
 STRING_PLANT_WATERING = "Une plante a besoin de vous !"
-STRING_PLANT_WATERING_CONTENT = "La plant {plant} a besoin d'eau !"
+STRING_PLANT_WATERING_CONTENT = "La plante {plant} a besoin d'eau !"
 
 
 
@@ -92,7 +92,6 @@ def checkPlantWatering():
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_scheduled():
-    print("Checking for alarm scheduled")
     try:
         db_scheduled = MySQL('scheduled')
         db_alarms = MySQL('alarms')
@@ -116,7 +115,6 @@ def check_for_alarm_scheduled():
 
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_notifications():
-    print("Check for alarm notifications")
     try:
         db_alarms = MySQL('alarms')
         db_devices = MySQL('devices')
@@ -146,6 +144,20 @@ def check_for_alarm_notifications():
     db_alarms.close()
     db_devices.close()
 
+@periodic_task(run_every=crontab(hour='*', minute='*'))
+def monitoringPi():
+    try:
+        db_devices = MySQL('devices')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+    r = requests.get("http://192.168.0.50:3540/ping")
+    if r.text != "Pong":
+        error_msg = "Unable to ping the Pi"
+        print(error_msg)
+        r = requests.get('https://smsapi.free-mobile.fr/sendmsg?user=10908880&pass=9o83gNpCCAMjjs&msg={}'.format(error_msg))
+        
 
 @periodic_task(run_every=crontab(hour='*', minute='*/3'))
 def check_for_alarm_led_status():
