@@ -52,14 +52,23 @@ def send_to(ip, msg):
 def checkBaseTemperature():
     try:
         db_datas = MySQL('datas')
+        db_devices = MySQL('devices')
     except:
         error_msg = "Unable to connect to the database"
         print(error_msg)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
-    temp = grovepi.temp(1)
-    db_datas.add([1, round(temp,2), 21])
+    for device in db_devices.all():
+        try:
+            code = int(device['code'])
+        except:
+            print("")
+        else:
+            if device['type'] == 4 and code > 0 and code < 3:
+                temp = grovepi.temp(code)
+                db_datas.add([1, round(temp, 2), device['id']])
+                print("Temperature added {}".format(temp))
     db_datas.close()
-    print("Temperature added {}".format(temp))
+    db_devices.close()
 
 @periodic_task(run_every=crontab(hour='*', minute='*/2'))
 def checkPlantWatering():
@@ -105,10 +114,23 @@ def check_for_alarm_scheduled():
     for aScheduled in db_scheduled.all():
         if int(aScheduled['beginHour']) == hour and int(aScheduled['beginMinute']) == minute:
             alarm = db_alarms.get('id', aScheduled['alarm_id'])[0]
-            db_alarms.modify(alarm['id'], 'state', True)
+            if bool(alarm['state']) == False:
+                db_alarms.modify(alarm['id'], 'state', True)
         elif int(aScheduled['endHour']) == hour and int(aScheduled['endMinute']) == minute:
             alarm = db_alarms.get('id', aScheduled['alarm_id'])[0]
-            db_alarms.modify(alarm['id'], 'state', False)
+            # Checking if the alarm was already activated before the scheduled
+            # So if the guy is in holidays the alarm don't go off
+            t1 = datetime.strptime(aScheduled['beginHour'] +':' + aScheduled['beginMinute'], '%H:%M')
+            t2 = datetime.strptime(aScheduled['endHour'] + ':' + aScheduled['endMinute'], '%H:%M')
+            delta = (t2 - t1)  # Difference between the activation time and deactivation
+
+            # Now checking the difference between the alarm real activation time
+            activation_time = alarm['updated_at']
+            delta_activation = (now - activation_time)
+            if delta_activation.total_seconds() < delta.total_seconds() - 1000 and delta_activation.total_seconds() > delta.total_seconds() + 1000:
+                print("Activated before the scheduled, do nothing")
+            else:
+                db_alarms.modify(alarm['id'], 'state', False)
     db_alarms.close()
     db_scheduled.close()
 
@@ -262,8 +284,7 @@ def garage_authorized(garage_id, ip, user_id):
         error_msg = "Unable to connect to the database"
         print(error_msg)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
-    device = db_devices.get('ip', ip)
-    if device:
+    if "192.168" in ip:
         r = requests.get("http://192.168.0.50:3540/garage/{}".format(garage_id))
         print("Go up garage {}".format(garage_id))
     db_devices.close()
