@@ -18,8 +18,6 @@ IS_REAL_MOTION_BY = 5
 protocol_launched = False
 alarm_worker_call = None
 
-# Logger initialisation
-logger = Utility.initialize_logger(SCRIPT_NAME)
 
 
 # Each variables store an object capable of inserting, updating and deleting
@@ -31,7 +29,7 @@ try:
     db_users = MySQL('users')
 except:
     error_msg = "Unable to connect to the database"
-    logger.fatal(error_msg)
+    print(error_msg)
     Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
 
@@ -45,7 +43,7 @@ try:
             home_device = device
 except:
     error_msg = "Can't read devices database"
-    logger.fatal(error_msg)
+    print(error_msg)
     Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
 if home_device:
@@ -57,7 +55,6 @@ if home_device:
         if Utility.get_alarm_state(home_device['id']):
             # Read the sensor value
             a = grovepi.digitalRead(int(home_device['code']))
-            print("Value returned by sensor: {}".format(a))
             if a == 1:
                 t += 1
             if t == IS_REAL_MOTION_BY:

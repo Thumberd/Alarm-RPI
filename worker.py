@@ -41,7 +41,7 @@ STRING_PLANT_WATERING_CONTENT = "La plante {plant} a besoin d'eau !"
 
 alarms = MySQL('alarms')
 
-celery = Celery('worker', broker='amqp://guest:guest@localhost')
+celery = Celery('worker', broker='amqp://guest:guest@localhost:5672//')
 
 def send_to(ip, msg):
     r = requests.get("http://{ip}:3540/alarm/{state}".format(ip=ip, state=msg))
@@ -248,6 +248,7 @@ def send_code_garage(garage_id, ip, user_id):
     code = ""
     for i in range(0, 8):
         code += str(random.randrange(0,9))
+    print(code)
     c.execute("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, datetime(), ?, ?)", (code, garage_id, user_id, ip))
     db.commit()
     SMS(code).byID(user_id)
