@@ -284,6 +284,7 @@ def garage_authorized(garage_id, ip, user_id):
         error_msg = "Unable to connect to the database"
         print(error_msg)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+    print(ip)
     if "192.168" in ip:
         r = requests.get("http://192.168.0.50:3540/garage/{}".format(garage_id))
         print("Go up garage {}".format(garage_id))
