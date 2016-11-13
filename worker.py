@@ -151,7 +151,6 @@ def check_for_alarm_notifications():
         db_devices = MySQL('devices')
     except Exception as e:
         error_msg = "Unable to connect to the database"
-        error_msg += e
         print(error_msg)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     else:
@@ -167,8 +166,8 @@ def check_for_alarm_notifications():
                         try:
                             send_to(device['ip'], "ON")
                         except Exception as e:
+                            print(e)
                             error_msg = "Problem sending the new state to the devices."
-                            error_msg += e
                             Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
         # Get all the alarm which are currently OFF
         alarmDOWN = db_alarms.get('state', 0)
@@ -182,7 +181,7 @@ def check_for_alarm_notifications():
                             send_to(device['ip'], "OFF")
                         except Exception as e:
                             error_msg = "Problem sending the new state to the devices."
-                            error_msg += e
+                            print(e)
                             Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
         db_alarms.close()
         db_devices.close()
@@ -208,7 +207,7 @@ def monitoring_pi():
                         reboot.delay(device['ip'])
                 except Exception as e:
                     error_msg = "Unable to ping the Pi"
-                    error_msg += e
+                    print(e)
                     print(error_msg)
                     Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
                     reboot.delay(device['ip'])
@@ -248,7 +247,7 @@ def remove_old_codes():
         if i > 0:
             print("Deleted {} old codes".format(i))
     except Exception as e:
-        error_msg = e
+        error_msg = "Error during the delete of the old codes"
         print(e)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
@@ -304,9 +303,9 @@ def alarm_protocol(alarm_id):
                                        user['id'],
                                        0])
                 except Exception as e:
-                    error_msg = e
+                    error_msg = "Can't inform user"
                     print(e)
-                    Utility.launch_fatal_process_alert(SCRIPT_NAME, e)
+                    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
                 timelapse.delay()
                 Utility.sound(1)
                 break
