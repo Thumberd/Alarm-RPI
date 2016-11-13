@@ -253,13 +253,13 @@ def remove_old_codes():
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
 
-
 @celery.task
 def reboot(ip):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, 5400))
     s.send(u'{}*RBT'.format(SALT))
     s.close()
+
 
 # Asynchronous process triggered when the motion sensor detects activity
 # and only if the alarm is set to ON
