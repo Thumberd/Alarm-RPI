@@ -108,6 +108,7 @@ def checkPlantWatering():
                                        0])
 
 
+
 @periodic_task(run_every=crontab(hour='*', minute='*'))
 def check_for_alarm_scheduled():
     try:
@@ -129,10 +130,9 @@ def check_for_alarm_scheduled():
             alarm = db_alarms.get('id', aScheduled['alarm_id'])[0]
             # Checking if the alarm was already activated before the scheduled
             # So if the guy is in holidays the alarm don't go off
-            t1 = datetime.strptime(aScheduled['beginHour'] +':' + aScheduled['beginMinute'], '%H:%M')
-            t2 = datetime.strptime(aScheduled['endHour'] + ':' + aScheduled['endMinute'], '%H:%M')
+            t1 = datetime.strptime(str(aScheduled['beginHour']) +':' + str(aScheduled['beginMinute']), '%H:%M')
+            t2 = datetime.strptime(str(aScheduled['endHour']) + ':' + str(aScheduled['endMinute']), '%H:%M')
             delta = (t2 - t1)  # Difference between the activation time and deactivation
-
             # Now checking the difference between the alarm real activation time
             activation_time = alarm['updated_at']
             delta_activation = (now - activation_time)
@@ -325,6 +325,7 @@ def timelapse():
         camera.start_preview()
         camera.annotate_text = time.strftime('%Y-%m-%d %H:%M:%S')
         time.sleep(1)
+        #os.mkdir('/home/dev/www/public/media')
         i = 0
         for filename in camera.capture_continuous('/home/dev/www/public/media/img{counter:03d}.jpg'):
             if i < 20:
@@ -342,6 +343,7 @@ def send_code_garage(garage_id, ip, user_id):
     code = ""
     for i in range(0, 8):
         code += str(random.randrange(0,9))
+    print(code)
     c.execute("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, datetime(), ?, ?)", (code, garage_id, user_id, ip))
     db.commit()
     SMS(code).byID(user_id)
@@ -376,6 +378,7 @@ def send_validation_code(code, ip, user_id):
         time_code = datetime.strptime(data[2], "%Y-%m-%d %H:%M:%S")
         now = datetime.now()
         difference = now - time_code
+        print(difference.total_seconds())
         if difference.total_seconds() < MAX_TIME_FOR_VALIDATION_CODE:
             if ip == data[5] and data[4] == user_id:
                 print("Go up garage ! {}".format(data[3]))

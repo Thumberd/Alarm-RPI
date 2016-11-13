@@ -23,21 +23,20 @@ except:
     sys.exit()  # Close the process and hope for a restart (-> supervisor)
 
 # Each variables store an object capable of inserting, updating and deleting
-# in the given table
-try:
-    db_devices = MySQL('devices')
-    db_alarms = MySQL('alarms')
-    db_users = MySQL('users')
-except:
-    error_msg = "Unable to connect to the database"
-    print(error_msg)
-    Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
-    time.sleep(50000)
-    sys.exit()
-
+# in the given t
 timeshot = 0
 
 while True:
+    try:
+        db_devices = MySQL('devices')
+        db_alarms = MySQL('alarms')
+        db_users = MySQL('users')
+    except:
+        error_msg = "Unable to connect to the database"
+        print(error_msg)
+        Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+        time.sleep(50000)
+        sys.exit()
     line = s.readline()  # Get the line sent by the Arduino
     print(line.split('\r'))
     user = db_users.get('RFID', line.split('\r')[0])
@@ -57,11 +56,15 @@ while True:
         if is_one_alarm_up and not state:
             for alarm in alarms:
                 db_alarms.modify(alarm['id'], 'state', state)
-        if not state:
+        elif not state:
             print("Waiting {} sec before activation".format(TIME_BEFORE_ACTIVATION))
             time.sleep(TIME_BEFORE_ACTIVATION)
-        for alarm in alarms:
-            db_alarms.modify(alarm['id'], 'state', not state)
+            for alarm in alarms:
+                db_alarms.modify(alarm['id'], 'state', not state)
+        elif state:
+            print("Deactivating")
+            for alarm in alarms:
+                db_alarms.modify(alarm['id'], 'state', not state)
     else:
         print("Unauthorized tag")
         c = zerorpc.Client()
