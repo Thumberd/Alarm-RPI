@@ -71,28 +71,31 @@ class Mail:
             print("Unable to get users mail")
 
 class SMS:
-	def __init__(self, msg):
-		self.clients = None
-		self.msg = msg		
-		try:
-			import requests
-			self.requests = requests
-		except ImportError:
-			print("Unable to import requests")
+    def __init__(self, msg):
+        self.clients = None
+        self.msg = msg
+        try:
+            import requests
+            self.requests = requests
+        except ImportError:
+            print("Unable to import requests")
 
-	def all(self):
-		DBapifree = MySQLhandler.MySQL('apifrees')
-		clients = DBapifree.all()
-		for client in clients:
-			r = self.requests.get('https://smsapi.free-mobile.fr/sendmsg?user=' + client['user'] + '&pass=' + client['key'] + '&msg=' + self.msg)
-			
-	def byID(self, id):
-		try:
-			id = int(id)
-		except:
-			return "Incorrect data"
-		else:
-			DBapifree = MySQLhandler.MySQL('apifrees')
-			client = DBapifree.get('user_id', id)[0]
-			if client:
-				r = self.requests.get('https://smsapi.free-mobile.fr/sendmsg?user=' + client['user'] + '&pass=' + client['key'] + '&msg=' + self.msg)
+    def all(self):
+        DBapifree = MySQLhandler.MySQL('apifrees')
+        clients = DBapifree.all()
+        for client in clients:
+            r = self.requests.get('https://smsapi.free-mobile.fr/sendmsg?user=' + client['user'] + '&pass=' + client['key'] + '&msg=' + self.msg)
+    def byID(self, id):
+        try:
+            id = int(id)
+        except:
+            return "Incorrect data"
+        else:
+            DBapifree = MySQLhandler.MySQL('apifrees')
+            client = DBapifree.get('user_id', id)[0]
+            if client:
+                r = self.requests.get('https://smsapi.free-mobile.fr/sendmsg?user=' + client['user'] + '&pass='
+                                + client['key'] + '&msg=' + self.msg)
+    def to_staff(self):
+        r = self.requests.get('https://smsapi.free-mobile.fr/sendmsg?user=10908880&pass=9o83gNpCCAMjjs&msg={}'
+                            .format(self.msg))
