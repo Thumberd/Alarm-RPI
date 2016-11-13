@@ -64,7 +64,7 @@ def checkBaseTemperature():
             try:
                 code = int(device['code'])
             except:
-                print("Unable to parse to int")
+                print("")
             else:
                 if device['type'] == 4 and code > 0 and code < 3:
                     try:
@@ -197,7 +197,7 @@ def monitoring_pi():
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     else:
         for device in db_devices.all():
-            if device['type'] == 2 and device['ip'] != None:
+            if device['type'] == 2:
                 try:
                     r = requests.get("http://{}:3540/ping".format(device['ip']))
                     if r.text != "Pong":
