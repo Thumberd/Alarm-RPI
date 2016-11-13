@@ -197,7 +197,7 @@ def monitoring_pi():
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
     else:
         for device in db_devices.all():
-            if device['type'] == 2:
+            if device['type'] == 2 and device['ip'] != '':
                 try:
                     r = requests.get("http://{}:3540/ping".format(device['ip']))
                     if r.text != "Pong":
