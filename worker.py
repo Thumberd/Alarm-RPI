@@ -120,10 +120,9 @@ def check_for_alarm_scheduled():
             alarm = db_alarms.get('id', aScheduled['alarm_id'])[0]
             # Checking if the alarm was already activated before the scheduled
             # So if the guy is in holidays the alarm don't go off
-            t1 = datetime.strptime(aScheduled['beginHour'] +':' + aScheduled['beginMinute'], '%H:%M')
-            t2 = datetime.strptime(aScheduled['endHour'] + ':' + aScheduled['endMinute'], '%H:%M')
+            t1 = datetime.strptime(str(aScheduled['beginHour']) +':' + str(aScheduled['beginMinute']), '%H:%M')
+            t2 = datetime.strptime(str(aScheduled['endHour']) + ':' + str(aScheduled['endMinute']), '%H:%M')
             delta = (t2 - t1)  # Difference between the activation time and deactivation
-
             # Now checking the difference between the alarm real activation time
             activation_time = alarm['updated_at']
             delta_activation = (now - activation_time)
