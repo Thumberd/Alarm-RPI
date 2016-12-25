@@ -33,7 +33,7 @@ EVENT_IDENTIFIER = 1
 EVENT_IDENTIFIER_PLANT = 2
 
 STRING_ALARM_TITLE = "Alarme declenchee"
-STRING_ALARM_CONTENT = "Le capteur {sensor} s'est declenchee a {hour}:{minute}."
+STRING_ALARM_CONTENT = "Le capteur {sensor} s est declenchee a {hour}:{minute}."
 
 STRING_PLANT_WATERING = "Une plante a besoin de vous !"
 STRING_PLANT_WATERING_CONTENT = "La plante {plant} a besoin d'eau !"
@@ -275,12 +275,7 @@ def alarm_protocol(alarm_id):
             error_msg = "Unable to connect to the database"
             print(error_msg)
             Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
-        try:
-            Utility.switch_led_info(1)
-        except:
-            error_msg = "Unable to switch lamp"
-            print(error_msg)
-            Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
+        Utility.switch_led_info(1)
         time.sleep(TIME_BEFORE_ALARM)  # Wait [TIME_BEFORE_ALARM]/60 minutes
         alarms = db_alarms.all()
         device = db_devices.get('id', int(alarm_id))  # Get the device specified

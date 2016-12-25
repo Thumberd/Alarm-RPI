@@ -5,7 +5,7 @@ import sqlite3
 import os
 import grovepi
 import socket
-
+from messaging import SMS
 # Application import
 from MySQLhandler import MySQL
 
@@ -50,6 +50,7 @@ def get_camera_PID():
 
 def launch_fatal_process_alert(script_name, error):
     # TODO: send SMS to staff
+    SMS(error).to_staff()
     return None
 
 
