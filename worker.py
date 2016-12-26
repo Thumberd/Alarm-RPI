@@ -251,6 +251,9 @@ def remove_old_codes():
         print(e)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
+@periodic_task(run_every=crontab(hour='0', minute='0', month_of_year=12, day_of_month=31))
+def send_best_wishes_sms():
+    SMS("Bonne année ! Rasbperry Pi").all()
 
 @celery.task
 def reboot(ip):
