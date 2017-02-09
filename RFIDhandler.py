@@ -3,6 +3,7 @@ import serial
 import time
 import sys
 import zerorpc
+import datetime
 
 # Application library imports
 from MySQLhandler import *
@@ -27,6 +28,7 @@ except:
 timeshot = 0
 
 while True:
+    line = s.readline()  # Get the line sent by the Arduino
     try:
         db_devices = MySQL('devices')
         db_alarms = MySQL('alarms')
@@ -37,8 +39,6 @@ while True:
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
         time.sleep(50000)
         sys.exit()
-    line = s.readline()  # Get the line sent by the Arduino
-    print(line.split('\r'))
     user = db_users.get('RFID', line.split('\r')[0])
     # [user] represents the owner's row of the RFID tag passed
     # if it exists
@@ -57,16 +57,16 @@ while True:
             for alarm in alarms:
                 db_alarms.modify(alarm['id'], 'state', state)
         elif not state:
-            print("Waiting {} sec before activation".format(TIME_BEFORE_ACTIVATION))
+            print("[{}]: Waiting {} sec before activation".format(datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S"), TIME_BEFORE_ACTIVATION))
             time.sleep(TIME_BEFORE_ACTIVATION)
             for alarm in alarms:
                 db_alarms.modify(alarm['id'], 'state', not state)
         elif state:
-            print("Deactivating")
+            print("[{}]: Deactivating".format(datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")))
             for alarm in alarms:
                 db_alarms.modify(alarm['id'], 'state', not state)
     else:
-        print("Unauthorized tag")
+        print("[{}]: Unauthorized tag".format(datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")))
         c = zerorpc.Client()
         c.connect("tcp://127.0.0.1:4242")
         c.RFIDError()

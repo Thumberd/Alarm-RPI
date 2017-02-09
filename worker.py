@@ -251,7 +251,7 @@ def remove_old_codes():
         print(e)
         Utility.launch_fatal_process_alert(SCRIPT_NAME, error_msg)
 
-@periodic_task(run_every=crontab(hour='0', minute='0', month_of_year=12, day_of_month=31))
+@periodic_task(run_every=crontab(hour='0', minute='1', month_of_year=1, day_of_month=1))
 def send_best_wishes_sms():
     SMS("Bonne année ! Rasbperry Pi").all()
 
@@ -340,7 +340,7 @@ def send_code_garage(garage_id, ip, user_id):
     code = ""
     for i in range(0, 8):
         code += str(random.randrange(0,9))
-    print(code)
+    print("Sending code to {}".format(user_id))
     c.execute("INSERT INTO 'code'('code', 'garage_id', 'time', 'user_id', 'ip') VALUES (?, ?, datetime(), ?, ?)", (code, garage_id, user_id, ip))
     db.commit()
     SMS(code).byID(user_id)
@@ -359,7 +359,7 @@ def garage_authorized(garage_id, ip, user_id):
     user = db_users.get('id', user_id)
     if "192.168" in ip and user != None:
         r = requests.get("http://192.168.0.50:3540/garage/{}".format(garage_id))
-        print("Go up garage {}".format(garage_id))
+        print("Opening/closing garage n{}".format(garage_id))
     db_devices.close()
     db_users.close()
 
@@ -378,6 +378,6 @@ def send_validation_code(code, ip, user_id):
         print(difference.total_seconds())
         if difference.total_seconds() < MAX_TIME_FOR_VALIDATION_CODE:
             if ip == data[5] and data[4] == user_id:
-                print("Go up garage ! {}".format(data[3]))
+                print("Opening/closing garage n{}".format(data[3]))
                 r = requests.get("http://192.168.0.50:3540/garage/{}".format(data[3]))
     db.close()

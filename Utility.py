@@ -80,5 +80,4 @@ def sound(state):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('192.168.0.47', 3458))
         s.send("SOUNDGOON".encode())
-        print("Okkkk")
     db_devices.close()
